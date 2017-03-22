@@ -1,2 +1,9 @@
-# prettysounds
-turning pictures into sounds
+
+
+Dependancies:
+
+MIDIUtil
+
+sci-kit image
+
+conda
