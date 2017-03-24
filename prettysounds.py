@@ -61,6 +61,7 @@ def plot_grayscale_img(image_mat):
     fig = plt.figure(figsize=(7, 7))
     ax = fig.add_subplot(111)
     ax.imshow(1-image_mat,cmap=cm.gray)
+    ax.axis('off')
 
     return fig
 
@@ -87,6 +88,8 @@ def matrix_to_midi(input_mat, first_note=0, tempo=120, duration=1, output_file=N
 
     MyMIDI = MIDIFile(1) # One track
     MyMIDI.addTempo(track, time, tempo)
+
+    print 'writing midi file'
     for times in range(num_times):
         freq=np.nonzero(input_mat[:,times])[0]+first_note
         volume=np.squeeze(np.matrix((input_mat[np.nonzero(input_mat[:,times]),times])))*100
@@ -103,4 +106,6 @@ def matrix_to_midi(input_mat, first_note=0, tempo=120, duration=1, output_file=N
     binfile.close()
 
     return True
+
+
 
