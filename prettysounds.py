@@ -7,6 +7,7 @@ from skimage.exposure import rescale_intensity
 from skimage.color.adapt_rgb import adapt_rgb, each_channel, hsv_value
 from skimage import filters
 from scipy.misc import imread
+import scipy.signal
 from skimage.feature import canny
 from skimage.color import rgb2gray
 
@@ -24,9 +25,29 @@ def as_gray(image_filter, image, *args, **kwargs):
 def sobel_gray(image):
     return filters.sobel(image)
 
-def preprocess_image(image_path, mask_thresh=None):
+
+def reshape_image(image_mat, x_samples=300, y_samples=150, verbose=True):
+    """
+    Reshapes the image matrix.
+
     """
 
+    if verbose:
+        print 'reshaping image to ' + str(x_samples) + 'x' + str(y_samples)
+
+    if x_samples:
+        image_mat = np.array([scipy.signal.resample(image_mat[i,:],x_samples) for i in xrange(image_mat.shape[0])])
+
+    if y_samples:
+        image_mat = np.array([scipy.signal.resample(image_mat[:,i],y_samples) for i in xrange(image_mat.shape[1])]).T
+
+    image_mat[image_mat<0] = 0
+
+    return image_mat
+
+
+def preprocess_image(image_path, reshape_params=[500,125], mask_thresh=0.25):
+    """
     Finds images in an image file and converts them into a numpy matrix.
 
     Parameters
@@ -44,13 +65,26 @@ def preprocess_image(image_path, mask_thresh=None):
 
     """
 
-    image = imread(image_path)
-    sobel_image = sobel_gray(image)
+    myimage = imread(image_path)
 
+    sobel_image = sobel_gray(myimage)
+
+    if reshape_params:
+        sobel_image = reshape_image(sobel_image, x_samples=reshape_params[0], y_samples=reshape_params[1])
+
+    # images > 150 don't fit in midi files
+    if sobel_image.shape[1] > 150:
+        sobel_image = reshape_image(sobel_image, y_samples=150, x_samples=None)
+
+    # increase contrast to make intensity values larger
+    sobel_image = sobel_image/np.max(sobel_image)
+
+    # remove small values
     if mask_thresh:
-        sobel_image = np.array([[i if i >=mask_thresh else 0 for i in img_row ] for img_row in sobel_image])
+        sobel_image[sobel_image<mask_thresh] = 0
 
     return sobel_image
+
 
 def plot_grayscale_img(image_mat):
 
@@ -60,8 +94,8 @@ def plot_grayscale_img(image_mat):
 
     fig = plt.figure(figsize=(7, 7))
     ax = fig.add_subplot(111)
-    ax.imshow(1-image_mat,cmap=cm.gray)
-    ax.axis('off')
+    im = ax.imshow(image_mat,cmap=cm.gray)
+    fig.colorbar(im)
 
     return fig
 
@@ -80,6 +114,9 @@ def matrix_to_midi(input_mat, first_note=0, tempo=120, duration=1, output_file=N
     output_file : String of path and filename of midi file to write to. Should end in .mid
 
     """
+
+    # shit is upside down for no reason
+    input_mat = np.flipud(input_mat)
 
     num_times = np.shape(input_mat)[1]
     track = 0
