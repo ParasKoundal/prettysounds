@@ -100,21 +100,21 @@ def plot_grayscale_img(image_mat):
     return fig
     
     
-def add_music(input_mat_raw, scale_template):
+def add_music(input_mat, scale_template):
     """
     Removes tones not falling on the given scale
     
     scale_and_firstnote should be a 1X7 array with the first element as the 
     key. e.g. scale_template = np.asarray([0,2,4,5,7,9,11])   
     """
-    freq_size = np.shape(input_mat_raw)[0]
+    freq_size = np.shape(input_mat)[0]
     num_rep = np.floor(freq_size/12).astype(np.int64)
     scale = np.tile(scale_template, (1,num_rep))
     add_offset = np.tile(np.asarray(range(num_rep)),(len(scale_template),1))
     scale = scale+12*add_offset.flatten('F')
     remove_scale = np.setdiff1d(np.asarray(range(freq_size)),scale)
-    input_mat_raw[remove_scale,:]=0
-    return input_mat_raw
+    input_mat[remove_scale,:]=0
+    return input_mat
 
 def matrix_to_midi(input_mat, first_note=0, tempo=120, duration=1, output_file=None):
 
