@@ -114,7 +114,7 @@ def add_music(input_mat_raw, scale_template):
     scale = scale+12*add_offset.flatten('F')
     remove_scale = np.setdiff1d(np.asarray(range(freq_size)),scale)
     input_mat_raw[remove_scale,:]=0
-    return input_mat
+    return input_mat_raw
 
 def matrix_to_midi(input_mat, first_note=0, tempo=120, duration=1, output_file=None):
 
