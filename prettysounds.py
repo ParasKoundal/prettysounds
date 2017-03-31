@@ -21,6 +21,7 @@ def as_gray(image_filter, image, *args, **kwargs):
     gray_image = rgb2gray(image)
     return image_filter(gray_image, *args, **kwargs)
 
+
 @adapt_rgb(as_gray)
 def sobel_gray(image):
     return filters.sobel(image)
@@ -86,8 +87,7 @@ def preprocess_image(image_path, reshape_params=[500,125], mask_thresh=0.25):
     return sobel_image
 
 
-def plot_grayscale_img(image_mat):
-
+def plot_grayscale_img(image_mat,title=None):
     """
     tool to visualize the image matrix.
     """
@@ -95,26 +95,45 @@ def plot_grayscale_img(image_mat):
     fig = plt.figure(figsize=(7, 7))
     ax = fig.add_subplot(111)
     im = ax.imshow(image_mat,cmap=cm.gray)
+    if title:
+        ax.set_title(title)
     fig.colorbar(im)
 
     return fig
-    
-    
-def add_music(input_mat, scale_template):
+
+
+def add_music(input_mat, scale_template,method='slice'):
     """
     Removes tones not falling on the given scale
-    
-    scale_and_firstnote should be a 1X7 array with the first element as the 
-    key. e.g. scale_template = np.asarray([0,2,4,5,7,9,11])   
+
+    scale_and_firstnote should be a 1X7 array with the first element as the
+    key. e.g. scale_template = np.asarray([0,2,4,5,7,9,11])
     """
     freq_size = np.shape(input_mat)[0]
     num_rep = np.floor(freq_size/12).astype(np.int64)
     scale = np.tile(scale_template, (1,num_rep))
     add_offset = np.tile(np.asarray(range(num_rep)),(len(scale_template),1))
-    scale = scale+12*add_offset.flatten('F')
-    remove_scale = np.setdiff1d(np.asarray(range(freq_size)),scale)
-    input_mat[remove_scale,:]=0
+    scale = np.squeeze(scale + 12 * add_offset.flatten('F'))
+
+    if method == 'slice':
+        remove_scale = np.setdiff1d(range(freq_size),scale)
+        input_mat[remove_scale,:]=0
+
+    elif method == 'round':
+        for col in xrange(input_mat.shape[1]):
+            for ind,val in enumerate(input_mat[:,col]):
+                if ind not in scale and val !=0:
+                    # find closest place in scale
+                    nearest_neighbor = min(scale, key=lambda x:abs(x-ind))
+                    # move this value there and replace bad index with 0
+                    input_mat[nearest_neighbor,col] = val
+                    input_mat[ind,col] = 0
+    else:
+        print 'method not recognized'
+        return None
+
     return input_mat
+
 
 def matrix_to_midi(input_mat, first_note=0, tempo=120, duration=1, output_file=None):
 
