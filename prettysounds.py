@@ -87,6 +87,17 @@ def preprocess_image(image_path, reshape_params=[500,125], mask_thresh=0.25):
     return sobel_image
 
 
+def padmat(input_mat,left_pad=0,right_pad=0,up_pad=0,down_pad=0):
+    """
+    Helper function to pad zeros to image matrices to edges don't get cut off.
+    """
+
+    new_mat = np.zeros((input_mat.shape[0]+up_pad+down_pad,input_mat.shape[1]+left_pad+right_pad))
+    new_mat[up_pad:new_mat.shape[0]-down_pad,left_pad:new_mat.shape[1]-right_pad]=input_mat
+
+    return new_mat
+
+
 def plot_grayscale_img(image_mat,title=None):
     """
     tool to visualize the image matrix.
@@ -133,6 +144,57 @@ def add_music(input_mat, scale_template,method='slice'):
         return None
 
     return input_mat
+
+
+def apply_chord_changes(input_mat,chord_array,scale_templates=None,chord_timing=None,
+                        starting_ind=None,method='round'):
+    """
+    Applies chord changes to a matrix by calling add_music
+
+    Parameters
+    ==========
+
+    input_mat : numpy matrix where y is notes and x is time
+    chord_array : list of chords to iterate through by half step
+    scale_templates : keys of music for chord changes. defaults to major scales
+    chord_timing : time to iterate through each chord in the progression. defaults to 4 beats
+    starting_ind: point in time to start iterating through chords. defaults to first note
+    method : 'round'|'slice' method to remove notes not in chord
+
+    Returns:
+    ========
+
+    chord_change_mat : image matrix with chord changes applied.
+
+    """
+    if scale_templates is None:
+        maj_scale = np.asarray([0,2,4,5,7,9,11]);
+        scale_templates = [maj_scale for i in chord_array]
+    if chord_timing is None:
+        chord_timing = [16 for i in chord_array]
+    if starting_ind is None:
+        starting_ind = np.where(sum(input_mat,0)>0)[0][0]
+
+    # add a little more space so it sounds nice
+    input_mat = padmat(input_mat,right_pad=max(chord_timing))
+
+    chord_change_mat = np.zeros(input_mat.shape);
+    x_ind = starting_ind;
+    chord_ind=0
+    inrange=True
+    while inrange:
+        this_chunk = x_ind+chord_timing[chord_ind]
+        if this_chunk < input_mat.shape[1]:
+            unprocessed_chunk = input_mat[:,x_ind:this_chunk] # damn flip for some reason
+            chord_chunk = add_music(unprocessed_chunk,chord_array[chord_ind]+scale_templates[chord_ind],method=method)
+            chord_change_mat[:,x_ind:this_chunk] = chord_chunk
+            chord_ind +=1
+            if chord_ind>len(chord_array)-1:
+                chord_ind=0
+            x_ind = x_ind+chord_timing[chord_ind]-1
+        else:
+            inrange=False
+    return chord_change_mat
 
 
 def matrix_to_midi(input_mat, first_note=0, tempo=120, duration=1, output_file=None):
