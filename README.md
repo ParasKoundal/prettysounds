@@ -1,4 +1,4 @@
-### Code that turns image files into songs!
+## Code that turns image files into songs!
 
 See demo.ipynb to understand how it works!
 
